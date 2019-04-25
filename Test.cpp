@@ -4,8 +4,8 @@
 
 using namespace std;
 
-#define N 10001
-#define M 100001
+#define N 4000006
+#define M 34000006
 #define GRAIN_SIZE 1
 #define HEAD 0
 #define TAIL 1
@@ -27,7 +27,10 @@ struct Edge
 } Edges[2 * M];
 
 
-// Generate a thread-safe random number integer in the bound [low, high]
+int P = 2; // #processing elements
+
+
+// Generates a thread-safe random integer in the bound [low, high]
 // Ref: https://stackoverflow.com/questions/21237905/how-do-i-generate-thread-safe-uniform-random-numbers8
 int random_int(const int &low, const int &high)
 {
@@ -38,7 +41,8 @@ int random_int(const int &low, const int &high)
 }
 
 
-// Generate a thread-safe random number float in the bound [low, high]
+// Generates a thread-safe random float in the bound [low, high]
+// Ref: https://stackoverflow.com/questions/21237905/how-do-i-generate-thread-safe-uniform-random-numbers8
 
 float random_float(const float &low, const float &high)
 {
@@ -49,14 +53,11 @@ float random_float(const float &low, const float &high)
 }
 
 
-// Takes the graph as input in an edge-list data structure
+// Simulate a coin toss and return 0 or 1 (HEAD or TAIL)
 
-void input_graph(Edge *E, int &n, int &m)
+inline bool coin_toss()
 {
-    scanf("%d %d", &n, &m);
-
-    for(int i = 1; i <= m; ++i)
-        scanf("%d %d %f", &E[i].u, &E[i].v, &E[i].w);
+    return random_int(0, 1);
 }
 
 
@@ -69,7 +70,21 @@ void generate_random_edge_list(Edge *E, int n, int &m, float low, float high)
 }
 
 
-// Print the m-length edge-list E, preceded with 'message'
+
+
+// Take a weighted graph as input in an edge-list E;
+// n is the number of vertices and m is the number of edges.
+
+void input_graph(Edge *E, int &n, int &m)
+{
+    scanf("%d %d", &n, &m);
+
+    for(int i = 1; i <= m; ++i)
+        scanf("%d %d %f", &E[i].u, &E[i].v, &E[i].w);
+}
+
+
+// Print the m-length edge-list E, preceded with a 'message'
 
 void print_edge_list(Edge *E, int m, const char *message)
 {
@@ -78,7 +93,7 @@ void print_edge_list(Edge *E, int m, const char *message)
     for(int i = 1; i <= m; ++i)
         E[i].print();
 
-    printf("\n~~~END~~~\n\n");
+    printf("\n---END---\n\n");
 }
 
 
@@ -130,7 +145,7 @@ void parallel_prefix_sum(int *X, int n, int *S)
         int *Y = new int[n / 2 + 1], *Z = new int[n / 2 + 1];
 
         for(int i = 1; i <= n / 2; ++i)
-            Y[i] = X[2*i - 1] + X[2 * i];
+            Y[i] = X[2 * i - 1] + X[2 * i];
 
         parallel_prefix_sum(Y, n / 2, Z);
 
@@ -147,8 +162,9 @@ void parallel_prefix_sum(int *X, int n, int *S)
 }
 
 
-// Rearrange the edges of E[q : r] and return an index k in [q, r] such that all edges in E[q : k - 1] have smaller weights than E[k],
-// and all edges in E[k + 1 : r] have higher weights than E[k], and E[k] is the pivot edge, which was situated at 'pivotIdx' earlier
+// Rearrange the edges of E[q : r] and return an index k in [q, r] such that
+// all edges in E[q : k - 1] have smaller weights than E[k], and all edges in E[k + 1 : r] have higher weights than E[k],
+// and E[k] is the pivot edge, which was situated at 'pivotIdx' earlier
 
 int parallel_partition(Edge *E, int q, int r, int pivotIdx)
 {
@@ -200,7 +216,7 @@ int parallel_partition(Edge *E, int q, int r, int pivotIdx)
 }
 
 
-// Randomized quicksort for the edge-list E[q : r]
+// Randomized Quicksort for the edge-list E[q : r]
 
 void parallel_randomized_quicksort(Edge *E, int q, int r)
 {
@@ -220,7 +236,7 @@ void parallel_randomized_quicksort(Edge *E, int q, int r)
 
 
 // Replace each undirected edge (u, v, w) in the m-length edge-list E with
-// two directed edges: (u, v, w) and (v, u, w)
+// two directed edges: (u, v, w) and (v, u, w).
 
 void parallel_get_directed_edge_list(Edge *E, int &m)
 {
@@ -269,12 +285,12 @@ void parallel_radix_sort(long long *A, int n, int b)
     }
 
 
-    //delete F0, delete F1, delete S0, delete S1, delete B;
+    delete F0, delete F1, delete S0, delete S1, delete B;
 }
 
 
 // For n vertices (in [1, n]) and m-length edge-list E, for each vertex u in [1, n],
-// R[u] is set to the smallest index i such that E[i].u = u
+// R[u] is set to the smallest index i such that E[i].u = u and E[i] is not a loop.
 
 void parallel_simulate_priority_CW_radix_sort(Edge *E, int n, int m, int *R)
 {
@@ -300,17 +316,11 @@ void parallel_simulate_priority_CW_radix_sort(Edge *E, int n, int m, int *R)
 }
 
 
-inline bool coin_toss()
-{
-    return random_int(0, 1);
-}
-
-
 // For n vertices in [1, n] and m-length edge-list E, the minimum spanning forest for the graph is computed
 // at the Boolean array MSF; MSF[i] = true if and only if the i'th edge is in the computed minimum spanning forest.
 // Preconditions: MSF[1 : m] are set to false; for every undirected edge (u, v), both (u, v) and (v, u) are in E.
 
-void parallel_randomized_MSF_priority_CW(Edge *E, int n, int m, bool *MSF)
+void parallel_randomized_MSF_priority_CW_radix_sort(Edge *E, int n, int m, bool *MSF)
 {
     int *L = new int[n + 1], *R = new int[n + 1], u, v;
     bool *C = new bool[n + 1];
@@ -345,13 +355,292 @@ void parallel_randomized_MSF_priority_CW(Edge *E, int n, int m, bool *MSF)
                 L[u] = v, MSF[i] = true;//, printf("Weight %f included in MSF\n", E[i].w);
         }
 
+        edgesRemain = false;
         for(int i = 1; i <= m; ++i)
+        {
             E[i].u = L[E[i].u], E[i].v = L[E[i].v];
+            if(E[i].u != E[i].v)
+                edgesRemain = true;//, printf("(%d, %d) remain\n", E[i].u, E[i].v);
+        }
+    }
+
+    for(int i = 1; i <= m; ++i)
+        E[i] = B[i];
+
+    delete L, delete R, delete C, delete B;
+}
+
+
+
+// Ranking d-bit integer keys in n-length integer array S, using Counting sort (stable);
+// R[i] provides the rank of S[i] when keys in S are sorted in non-decreasing order
+
+void parallel_counting_rank(int *S, int n, int d, int *R)
+{
+    int **f = new int*[1 << d], **r1 = new int*[1 << d], *j_s = new int[P + 1], *j_e = new int[P + 1], *ofs = new int[P + 1];
+
+    for(int i = 0; i < (1 << d); ++i)
+        f[i] = new int[P + 1], r1[i] = new int[P + 1];
+
+    for(int i = 1; i <= P; ++i)
+    {
+        for(int j = 0; j < (1 << d); ++j)
+            f[j][i] = 0;
+
+        j_s[i] = (i - 1) * (n / P) + 1, j_e[i] = (i < P ? i * (n / P) : n);
+        for(int j = j_s[i]; j <= j_e[i]; ++j)
+            f[S[j]][i]++;
+    }
+
+    for(int j = 0; j < (1 << d); ++j)
+        parallel_prefix_sum(f[j], P, f[j]);
+
+    for(int i = 1; i <= P; ++i)
+    {
+        ofs[i] = 1;
+        for(int j = 0; j < (1 << d); ++j)
+        {
+            r1[j][i] = (i == 1 ? ofs[i] : ofs[i] + f[j][i - 1]);
+            ofs[i] = ofs[i] + f[j][P];
+        }
+
+        for(int j = j_s[i]; j <= j_e[i]; ++j)
+        {
+            R[j] = r1[S[j]][i];
+            r1[S[j]][i]++;
+        }
+    }
+
+
+    for(int i = 0; i < (1 << d); ++i)
+        delete f[i], delete r1[i];
+
+    delete f, delete r1, delete j_s, delete j_e, delete ofs;
+}
+
+
+// Extract the bit segment from the s'th to the e'th position of the long integer n;
+// [assuming that the extracted bit segment fits into an integer]
+
+int extract_bit_segment(unsigned long long n, int s, int e)
+{
+    const int sz = 8 * sizeof(unsigned long long);
+
+    return (n << (sz - 1 - e)) >> (sz - 1 - e + s);
+}
+
+
+// For an n-length b-bit long integer array A, stable sort it in non-decreasing order using
+// Radix sort with ranking using Counting sort
+
+void parallel_radix_sort_counting_rank(long long *A, int n, int b)
+{
+    int *S = new int[n + 1], *R = new int[n + 1];
+    long long *B = new long long[n + 1];
+
+    // printf("n = %d, P = %d\n", n, P);
+
+    int d = (int)ceil(log2(n / (P * log2(n)))), q;
+
+    for(int k = 0; k < b; k += d)
+    {
+        q = (k + d <= b ? d : b - k);
+
+        //printf("bit segment length = %d\nd = %d, b = %d\n", q, d, b);
+
+        for(int i = 1; i <= n; ++i)
+        {
+            S[i] = extract_bit_segment((unsigned long long)A[i], k, k + q - 1);
+            if(S[i] < 0)
+            {
+                printf("exiting as S[%d] = %d is invalid\n", i, S[i]);
+                exit(1);
+            }
+        }
+
+        parallel_counting_rank(S, n, q, R);
+
+        for(int i = 1; i <= n; ++i)
+            B[R[i]] = A[i];
+
+        for(int i = 1; i <= n; ++i)
+            A[i] = B[i];
+    }
+
+    delete S, delete R, delete B;
+}
+
+
+// For n vertices (in [1, n]) and m-length edge-list E, for each vertex u in [1, n],
+// R[u] is set to the smallest index i such that E[i].u = u and E[i] is not a loop.
+
+void parallel_simulate_priority_CW_radix_sort_counting_rank(Edge *E, int n, int m, int *R)
+{
+    printf("At priority CW simulation\n");
+
+    long long *A = new long long[m + 1];
+    int k = (int)ceil(log2(m)) + 1, u, j;
+
+    printf("k = %d\n", k);
+
+    for(int i = 1; i <= m; ++i)
+    {
+        A[i] = (E[i].u != E[i].v ? ((((long long)E[i].u) << k) | i) : 0);
+        if(A[i] < 0)
+        {
+            printf("exiting as A[i] = %lld\n", A[i]);
+            exit(1);
+        }
+
+        if(i == 1)
+        {
+            printf("Edge (%d, %d)\n", E[1].u, E[1].v);
+            printf("left shift = %lld\n", (long long)E[i].u << k);
+
+            printf("right shift = %lld\n", A[i] >> k);
+            printf("j = %d\n", A[i] - ((A[i] >> k) << k));
+            printf("A[1] = %lld\n", A[1]);
+        }
+    }
+
+    //printf("A[1] = %lld\n", A[1]);
+
+    long long temp = A[1];
+
+    parallel_radix_sort_counting_rank(A, m, k + (int)ceil(log2(n)));
+
+    for(int i = 1; i <= m; ++i)
+        if(A[i] == temp)
+        {
+            printf("Tracked %lld at %d\n", temp, i);
+
+            puts("\nFound\n");
+        }
+
+    for(int i = 1; i <= m; ++i)
+        if(A[i])
+        {
+            u = (A[i] >> k);
+            j = A[i] - (u << k);
+
+            if(i == 1 || u != (A[i - 1] >> k))
+            {
+                R[u] = j;
+                //if(u < 1 || u > n)
+                //    printf("FUCKED. u = %d\n", u);
+            }
+
+            if(i == 1)
+            {
+                printf("At first edge\n");
+            }
+        }
+
+    delete A;
+}
+
+
+// For n vertices in [1, n] and m-length edge-list E, the minimum spanning forest for the graph is computed
+// at the Boolean array MSF; MSF[i] = true if and only if the i'th edge is in the computed minimum spanning forest.
+// Preconditions: MSF[1 : m] are set to false; for every undirected edge (u, v), both (u, v) and (v, u) are in E.
+
+void parallel_randomized_MSF_priority_CW_radix_sort_counting_rank(Edge *E, int n, int m, bool *MSF)
+{
+    printf("At MSF routine\n");
+
+    int *L = new int[n + 1], *R = new int[n + 1], u, v;
+    bool *C = new bool[n + 1];
+    Edge *B = new Edge[m + 1];
+
+    parallel_randomized_quicksort(E, 1, m);
+
+    puts("Sorting done\n");
+
+    for(int i = 1; i <= m; ++i)
+    {
+        B[i] = E[i];
+        if(E[i].u < 1 || E[i].u > n || E[i].v < 1 || E[i].v > n)
+        {
+            printf("Invalid edge after sorting (%d, %d)\n", E[i].u, E[i].v);
+            printf("Exiting due to invalid edge.\n");
+            exit(1);
+        }
+    }
+
+    for(int i = 1; i <= n; ++i)
+        L[i] = i;
+
+    bool edgesRemain = (m > 0);
+
+    //printf("MSF routine with n = %d, m = %d\n", n, m);
+    //print_edge_list(Edges, m, "Sorted");
+
+    while(edgesRemain)
+    {
+        for(int i = 1; i <= n; ++i)
+            C[i] = coin_toss();
+
+        //print_edge_list(E, m, "Intermediate:");
+
+        parallel_simulate_priority_CW_radix_sort_counting_rank(E, n, m, R);
+
+        for(int i = 1; i <= m; ++i)
+            if(E[i].u != E[i].v)
+            {
+                if(E[i].u < 1 || E[i].u > n || E[i].v < 1 || E[i].v > n)
+                {
+                    printf("Invalid edge after priority CW (%d, %d)\n", u, v);
+                    printf("Exiting due to invalid edge.\n");
+                    exit(1);
+                }
+                else if(E[i].u != E[i].v)
+                {
+                    int r = R[E[i].u];
+                    if(r < 1 || r > m)
+                    {
+                        printf("Exiting due to invalid rank %d for vertex %d. Valid edge (%d, %d) (edge %d) exists.\n",
+                               r, E[i].u, E[i].u, E[i].v, i);
+                        exit(1);
+                    }
+                }
+            }
+
+
+
+        puts("HERE1");
+
+       // int c = 0;
+        for(int i = 1; i <= m; ++i)
+        {
+            u = E[i].u, v = E[i].v;
+
+            if(u < 1 || u > n || v < 1 || v > n)
+            {
+                printf("Out of bound exception for edge u = %d, v = %d\n", u, v);
+                printf("Exiting due to invalid edge.\n");
+                exit(1);
+            }
+
+            if(C[u] == TAIL && C[v] == HEAD && R[u] == i)
+                L[u] = v, MSF[i] = true;//, printf("c = %d\n", ++c);//, printf("Weight %f included in MSF\n", E[i].w);
+        }
+
+        puts("HERE2");
+
+        for(int i = 1; i <= n; ++i)
+            if(L[i] < 1 || L[i] > n)
+            {
+                printf("Label corrupted for vertex %d, (label = %d)\n", i, L[i]);
+                break;
+            }
 
         edgesRemain = false;
         for(int i = 1; i <= m; ++i)
+        {
+            E[i].u = L[E[i].u], E[i].v = L[E[i].v];
             if(E[i].u != E[i].v)
                 edgesRemain = true;//, printf("(%d, %d) remain\n", E[i].u, E[i].v);
+        }
     }
 
     for(int i = 1; i <= m; ++i)
@@ -365,11 +654,22 @@ void MSF(Edge *E, int n, int m)
 {
     parallel_get_directed_edge_list(E, m);
 
+    printf("modified m = %d\n", m);
+
+    for(int i = 1; i <= m; ++i)
+        if(E[i].u < 1 || E[i].u > n || E[i].v < 1 || E[i].v > n)
+        {
+            puts("Error in edge-list conversion.\n");
+            exit(1);
+        }
+
     bool *MSF = new bool[m + 1];
     for(int i = 1; i <= m; ++i)
         MSF[i] = false;
 
-    parallel_randomized_MSF_priority_CW(Edges, n, m, MSF);
+    //parallel_randomized_MSF_priority_CW_radix_sort(E, n, m, MSF);
+
+    parallel_randomized_MSF_priority_CW_radix_sort_counting_rank(E, n, m, MSF);
 
     int edgeCount = 0;
     float sumCost = 0;
@@ -380,10 +680,12 @@ void MSF(Edge *E, int n, int m)
 
     printf("Edge count in MSF = %d\nMSF Cost = %f\n", edgeCount, sumCost);
 
+    /*
     printf("\nMSF edges:\n");
     for(int i = 1; i <= m; ++i)
         if(MSF[i])
             E[i].print();
+    */
 
     delete MSF;
 }
@@ -408,9 +710,20 @@ void test()
     */
 
     int n, m;
+    Edge *E = Edges;
 
-    input_graph(Edges, n, m);
-    print_edge_list(Edges, m, "Initial");
+    //input_graph(Edges, n, m);
+    //print_edge_list(Edges, m, "Initial");
+
+    n = 10000, m = 100000;
+    generate_random_edge_list(E, n, m, 0, 1000);
+
+    for(int i = 1; i <= m; ++i)
+        if(E[i].u < 1 || E[i].u > n || E[i].v < 1 || E[i].v > n)
+        {
+            puts("Error in random edge-list generation.\n");
+            exit(1);
+        }
 
     /*parallel_randomized_quicksort(Edges, 1, m);
     print_edge_list(Edges, m, "Sorted");
@@ -425,13 +738,13 @@ void test()
     delete R;
         */
 
-    MSF(Edges, n, m);
+    MSF(E, n, m);
 }
 
 int main()
 {
     freopen("input.txt", "r", stdin);
-    //freopen("output.txt", "w", stdout);
+    freopen("output.txt", "w", stdout);
 
     //int n, m;
 
@@ -439,6 +752,8 @@ int main()
 
     //for(int i = 0; i < 10; ++i)
         test();
+
+        //printf("extracted %d\n", extract_bit_segment(7, 1, 3));
 
     return 0;
 }
