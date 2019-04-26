@@ -9,8 +9,8 @@
 using namespace std;
 using namespace chrono;
 
-#define N 3000006
-#define M 117000008
+#define N 4000006
+#define M 34000007
 #define GRAIN_SIZE 32768
 #define HEAD 0
 #define TAIL 1
@@ -67,7 +67,8 @@ double random_float(const double &low, const double &high)
 
 inline bool coin_toss()
 {
-    return random_int(0, 1);
+    return rand() % 2;
+    //return random_int(0, 1);
 }
 
 
@@ -306,7 +307,7 @@ void parallel_radix_sort(long long *A, int n, int b)
 void parallel_simulate_priority_CW_radix_sort(Edge *E, int n, int m, int *R)
 {
     long long *A = new long long[m + 1];
-    int k = (int)ceil(log2(m)) + 1, u, j;
+    int k = (int)ceil(log2(m)) + 1;
 
     cilk_for(int i = 1; i <= m; ++i)
         A[i] = (E[i].u != E[i].v ? (((long long)E[i].u << k) | i) : 0);
@@ -316,8 +317,8 @@ void parallel_simulate_priority_CW_radix_sort(Edge *E, int n, int m, int *R)
     cilk_for(int i = 1; i <= m; ++i)
         if(A[i])
         {
-            u = (A[i] >> k);
-            j = A[i] - (u << k);
+            int u = (A[i] >> k);
+            int j = A[i] - (u << k);
 
             if(i == 1 || u != (A[i - 1] >> k))
                 R[u] = j;
@@ -421,7 +422,7 @@ void parallel_radix_sort_counting_rank(long long *A, int n, int b)
 void parallel_simulate_priority_CW_radix_sort_counting_rank(Edge *E, int n, int m, int *R)
 {
     long long *A = new long long[m + 1];
-    int k = (int)ceil(log2(m)) + 1, u, j;
+    int k = (int)ceil(log2(m)) + 1;
 
     cilk_for(int i = 1; i <= m; ++i)
         A[i] = (E[i].u != E[i].v ? (((long long)E[i].u << k) | i) : 0);
@@ -431,8 +432,8 @@ void parallel_simulate_priority_CW_radix_sort_counting_rank(Edge *E, int n, int 
     cilk_for(int i = 1; i <= m; ++i)
         if(A[i])
         {
-            u = (A[i] >> k);
-            j = A[i] - (u << k);
+            int u = (A[i] >> k);
+            int j = A[i] - (u << k);
 
             if(i == 1 || u != (A[i - 1] >> k))
                 R[u] = j;
@@ -448,7 +449,7 @@ void parallel_simulate_priority_CW_radix_sort_counting_rank(Edge *E, int n, int 
 void parallel_simulate_priority_CW_binary_search(Edge *E, int n, int m, int *R)
 {
     bool *B = new bool[n + 1];
-    int *L = new int[n + 1], *H = new int[n + 1], *Md = new int[n + 1], u;
+    int *L = new int[n + 1], *H = new int[n + 1], *Md = new int[n + 1];
 
     cilk_for(int i = 1; i <= n; ++i)
         L[i] = 1, H[i] = m;
@@ -463,7 +464,7 @@ void parallel_simulate_priority_CW_binary_search(Edge *E, int n, int m, int *R)
         cilk_for(int i = 1; i <= m; ++i)
             if(E[i].u != E[i].v)
             {
-                u = E[i].u;
+                int u = E[i].u;
 
                 if(i >= L[u] && i <= Md[u])
                     B[u] = true;
@@ -494,7 +495,7 @@ void parallel_simulate_priority_CW_binary_search(Edge *E, int n, int m, int *R)
 
 void parallel_randomized_MSF_priority_CW(Edge *E, int n, int m, bool *MSF, int cwMethod)
 {
-    int *L = new int[n + 1], *R = new int[n + 1], u, v;
+    int *L = new int[n + 1], *R = new int[n + 1];
     bool *C = new bool[n + 1];
     Edge *B = new Edge[m + 1];
 
@@ -522,10 +523,10 @@ void parallel_randomized_MSF_priority_CW(Edge *E, int n, int m, bool *MSF, int c
 
         cilk_for(int i = 1; i <= m; ++i)
         {
-            u = E[i].u, v = E[i].v;
+            int u = E[i].u, v = E[i].v;
 
             if(C[u] == TAIL && C[v] == HEAD && R[u] == i)
-                L[u] = v, MSF[i] = true;
+                L[u] = E[i].v, MSF[i] = true;
         }
 
         edgesRemain = false;
@@ -619,12 +620,15 @@ void parse_input(int argc, char **argv, char *inputFile)
 
 int main(int argc, char **argv)
 {
-    char inputFile[101], outputFile[101];
+    char inputFile[101], outputFile[101] = "outputs/";
 
     parse_input(argc, argv, inputFile);
 
-    strcpy(outputFile, inputFile);
-    strcpy(outputFile + strlen(outputFile) - 6, "out.txt\0");
+    strcpy(outputFile + 8, inputFile + 8);
+
+    const char *suffix = (CW == RADIX_SORT ? "MST-radix-out.txt\0" :
+                          (CW == RADIX_SORT_COUNTING_RANK ? "MST-sort-out.txt\0" : "MST-search-out.txt\0"));
+    strcpy(outputFile + strlen(outputFile) - 6, suffix);
 
     freopen(inputFile, "r", stdin);
     freopen(outputFile, "w", stdout);
