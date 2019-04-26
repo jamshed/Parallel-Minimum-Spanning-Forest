@@ -10,7 +10,7 @@ using namespace std;
 using namespace chrono;
 
 #define N 4000006
-#define M 34000007
+#define M 34690007
 #define GRAIN_SIZE 32768
 #define HEAD 0
 #define TAIL 1
